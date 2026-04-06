@@ -1822,9 +1822,9 @@ extension CloudWatchLogsClientTypes {
         /// The Amazon S3 URI where query results are delivered. Must be a valid S3 URI format.
         /// This member is required.
         public var destinationIdentifier: Swift.String?
-        /// The Amazon Resource Name (ARN) of the KMS encryption key. Must belong to the same AWS Region as the destination Amazon S3 bucket.
+        /// The Amazon Resource Name (ARN) of the KMS encryption key. Must belong to the same Amazon Web Services Region as the destination Amazon S3 bucket.
         public var kmsKeyId: Swift.String?
-        /// The AWS accountId for the bucket owning account.
+        /// The Amazon Web Services accountId for the bucket owning account.
         public var ownerAccountId: Swift.String?
         /// The ARN of the IAM role that grants permissions to write query results to the specified Amazon S3 destination.
         /// This member is required.
@@ -2012,6 +2012,8 @@ extension CloudWatchLogsClientTypes {
         public var columns: [Swift.String]?
         /// The character used to separate each column in the original comma-separated value log event. If you omit this, the processor looks for the comma , character as the delimiter.
         public var delimiter: Swift.String?
+        /// The path to the parent field to put transformed key value pairs under. If you omit this value, the key value pairs will be placed under the root node.
+        public var destination: Swift.String?
         /// The character used used as a text qualifier for a single column of data. If you omit this, the double quotation mark " character is used.
         public var quoteCharacter: Swift.String?
         /// The path to the field in the log event that has the comma separated values to be parsed. If you omit this value, the whole log message is processed.
@@ -2020,11 +2022,13 @@ extension CloudWatchLogsClientTypes {
         public init(
             columns: [Swift.String]? = nil,
             delimiter: Swift.String? = nil,
+            destination: Swift.String? = nil,
             quoteCharacter: Swift.String? = nil,
             source: Swift.String? = nil
         ) {
             self.columns = columns
             self.delimiter = delimiter
+            self.destination = destination
             self.quoteCharacter = quoteCharacter
             self.source = source
         }
@@ -4003,10 +4007,14 @@ extension CloudWatchLogsClientTypes {
 
     /// Information about one CloudWatch Logs Insights query that matches the request in a DescribeQueries operation.
     public struct QueryInfo: Swift.Sendable {
+        /// The total number of bytes scanned by the query. This indicates the cost associated with the query.
+        public var bytesScanned: Swift.Double?
         /// The date and time that this query was created.
         public var createTime: Swift.Int?
         /// The name of the log group scanned by this query.
         public var logGroupName: Swift.String?
+        /// The duration in milliseconds that the query took to execute.
+        public var queryDuration: Swift.Int?
         /// The unique ID number of this query.
         public var queryId: Swift.String?
         /// The query language used for this query. For more information about the query languages that CloudWatch Logs supports, see [Supported query languages](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_AnalyzeLogData_Languages.html).
@@ -4015,21 +4023,29 @@ extension CloudWatchLogsClientTypes {
         public var queryString: Swift.String?
         /// The status of this query. Possible values are Cancelled, Complete, Failed, Running, Scheduled, and Unknown.
         public var status: CloudWatchLogsClientTypes.QueryStatus?
+        /// The ARN of the user who ran the query.
+        public var userIdentity: Swift.String?
 
         public init(
+            bytesScanned: Swift.Double? = nil,
             createTime: Swift.Int? = nil,
             logGroupName: Swift.String? = nil,
+            queryDuration: Swift.Int? = nil,
             queryId: Swift.String? = nil,
             queryLanguage: CloudWatchLogsClientTypes.QueryLanguage? = nil,
             queryString: Swift.String? = nil,
-            status: CloudWatchLogsClientTypes.QueryStatus? = nil
+            status: CloudWatchLogsClientTypes.QueryStatus? = nil,
+            userIdentity: Swift.String? = nil
         ) {
+            self.bytesScanned = bytesScanned
             self.createTime = createTime
             self.logGroupName = logGroupName
+            self.queryDuration = queryDuration
             self.queryId = queryId
             self.queryLanguage = queryLanguage
             self.queryString = queryString
             self.status = status
+            self.userIdentity = userIdentity
         }
     }
 }
@@ -7558,6 +7574,8 @@ public struct PutDeliverySourceInput: Swift.Sendable {
     ///
     /// * For CloudFront, the valid value is ACCESS_LOGS.
     ///
+    /// * For DevOps Agent, the valid value is APPLICATION_LOGS.
+    ///
     /// * For Amazon CodeWhisperer, the valid value is EVENT_LOGS.
     ///
     /// * For Elemental MediaPackage, the valid values are EGRESS_ACCESS_LOGS and INGRESS_ACCESS_LOGS.
@@ -7582,6 +7600,8 @@ public struct PutDeliverySourceInput: Swift.Sendable {
     ///
     /// * For Amazon Q, the valid values are EVENT_LOGS and SYNC_JOB_LOGS.
     ///
+    /// * For Amazon Web Services Security Hub CSPM, the valid value is SECURITY_FINDING_LOGS.
+    ///
     /// * For Amazon SES mail manager, the valid values are APPLICATION_LOGS and TRAFFIC_POLICY_DEBUG_LOGS.
     ///
     /// * For Amazon WorkMail, the valid values are ACCESS_CONTROL_LOGS, AUTHENTICATION_LOGS, WORKMAIL_AVAILABILITY_PROVIDER_LOGS, WORKMAIL_MAILBOX_ACCESS_LOGS, and WORKMAIL_PERSONAL_ACCESS_TOKEN_LOGS.
@@ -7592,7 +7612,7 @@ public struct PutDeliverySourceInput: Swift.Sendable {
     /// A name for this delivery source. This name must be unique for all delivery sources in your account.
     /// This member is required.
     public var name: Swift.String?
-    /// The ARN of the Amazon Web Services resource that is generating and sending logs. For example, arn:aws:workmail:us-east-1:123456789012:organization/m-1234EXAMPLEabcd1234abcd1234abcd1234
+    /// The ARN of the Amazon Web Services resource that is generating and sending logs. For example, arn:aws:workmail:us-east-1:123456789012:organization/m-1234EXAMPLEabcd1234abcd1234abcd1234 For the SECURITY_FINDING_LOGS logType, use a wildcard ARN for the hub resource. For example, arn:aws:securityhub:us-east-1:111122223333:hub/*
     /// This member is required.
     public var resourceArn: Swift.String?
     /// An optional list of key-value pairs to associate with the resource. For more information about tagging, see [Tagging Amazon Web Services resources](https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html)
@@ -14642,6 +14662,7 @@ extension CloudWatchLogsClientTypes.CSV {
         guard let value else { return }
         try writer["columns"].writeList(value.columns, memberWritingClosure: SmithyReadWrite.WritingClosures.writeString(value:to:), memberNodeInfo: "member", isFlattened: false)
         try writer["delimiter"].write(value.delimiter)
+        try writer["destination"].write(value.destination)
         try writer["quoteCharacter"].write(value.quoteCharacter)
         try writer["source"].write(value.source)
     }
@@ -14653,6 +14674,7 @@ extension CloudWatchLogsClientTypes.CSV {
         value.delimiter = try reader["delimiter"].readIfPresent()
         value.columns = try reader["columns"].readListIfPresent(memberReadingClosure: SmithyReadWrite.ReadingClosures.readString(from:), memberNodeInfo: "member", isFlattened: false)
         value.source = try reader["source"].readIfPresent()
+        value.destination = try reader["destination"].readIfPresent()
         return value
     }
 }
@@ -15756,6 +15778,9 @@ extension CloudWatchLogsClientTypes.QueryInfo {
         value.status = try reader["status"].readIfPresent()
         value.createTime = try reader["createTime"].readIfPresent()
         value.logGroupName = try reader["logGroupName"].readIfPresent()
+        value.queryDuration = try reader["queryDuration"].readIfPresent()
+        value.bytesScanned = try reader["bytesScanned"].readIfPresent()
+        value.userIdentity = try reader["userIdentity"].readIfPresent()
         return value
     }
 }
